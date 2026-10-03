@@ -2,10 +2,8 @@ import joblib
 import pandas as pd
 import shap
 
-# Load model
 model = joblib.load("model/loan_model.pkl")
 
-# Reference training data
 X = pd.DataFrame({
     "age": [22, 25, 30, 35, 40, 45, 28, 32, 50, 27],
     "income": [25000, 35000, 50000, 60000, 80000,
@@ -16,7 +14,6 @@ X = pd.DataFrame({
                      780, 640, 700, 800, 600]
 })
 
-# Customer to explain
 customer = pd.DataFrame({
     "age": [30],
     "income": [50000],
@@ -24,31 +21,40 @@ customer = pd.DataFrame({
     "credit_score": [700]
 })
 
-# SHAP explainer
-explainer = shap.LinearExplainer(model, X)
 
-shap_values = explainer(customer)
+def get_shap_explanation():
 
-# Prediction
-prediction = model.predict(customer)[0]
-probability = model.predict_proba(customer)[0][1]
+    explainer = shap.LinearExplainer(model, X)
 
-print("\nSHAP MODEL INTERPRETABILITY")
-print("=" * 60)
+    shap_values = explainer(customer)
 
-print(f"Prediction: {prediction}")
-print(f"Approval Probability: {probability:.4f}")
+    prediction = model.predict(customer)[0]
 
-print("\nSHAP Contributions")
-print("-" * 60)
+    probability = model.predict_proba(customer)[0][1]
 
-explanation = pd.DataFrame({
-    "feature": customer.columns,
-    "value": customer.iloc[0].values,
-    "shap_value": shap_values.values[0]
-})
+    explanation = pd.DataFrame({
+        "Feature": customer.columns,
+        "Value": customer.iloc[0].values,
+        "SHAP Value": shap_values.values[0]
+    })
 
-print(explanation.to_string(index=False))
+    return prediction, probability, explanation
 
-print("=" * 60)
-print("SHAP explanation completed.")
+
+if __name__ == "__main__":
+
+    prediction, probability, explanation = get_shap_explanation()
+
+    print("\nSHAP MODEL INTERPRETABILITY")
+    print("=" * 60)
+
+    print(f"Prediction: {prediction}")
+    print(f"Approval Probability: {probability:.4f}")
+
+    print("\nSHAP Contributions")
+    print("-" * 60)
+
+    print(explanation.to_string(index=False))
+
+    print("=" * 60)
+    print("SHAP explanation completed.")
