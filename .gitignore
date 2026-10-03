@@ -1,0 +1,6 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# Feast local database files
+feature_store/data/*.db
