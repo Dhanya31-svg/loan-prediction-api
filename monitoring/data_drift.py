@@ -1,7 +1,6 @@
 import pandas as pd
 import numpy as np
 
-
 FEATURES = [
     "age",
     "income",
@@ -9,8 +8,6 @@ FEATURES = [
     "credit_score"
 ]
 
-
-# Training/reference data
 training_data = pd.DataFrame({
     "age": [22, 25, 30, 35, 40, 45, 28, 32, 50, 27],
     "income": [25000, 35000, 50000, 60000, 80000,
@@ -21,8 +18,6 @@ training_data = pd.DataFrame({
                      780, 640, 700, 800, 600]
 })
 
-
-# Simulated production data
 production_data = pd.DataFrame({
     "age": [30, 35, 40, 42, 45, 38, 36, 41, 44, 39],
     "income": [90000, 120000, 150000, 110000, 180000,
@@ -35,6 +30,7 @@ production_data = pd.DataFrame({
 
 
 def calculate_psi(expected, actual, bins=10):
+
     breakpoints = np.linspace(
         min(expected.min(), actual.min()),
         max(expected.max(), actual.max()),
@@ -50,42 +46,53 @@ def calculate_psi(expected, actual, bins=10):
     expected_pct = np.where(expected_pct == 0, 0.0001, expected_pct)
     actual_pct = np.where(actual_pct == 0, 0.0001, actual_pct)
 
-    psi = np.sum(
+    return np.sum(
         (actual_pct - expected_pct)
         * np.log(actual_pct / expected_pct)
     )
 
-    return psi
+
+def get_data_drift_report():
+
+    rows = []
+    drift_found = False
+
+    for feature in FEATURES:
+
+        psi = calculate_psi(
+            training_data[feature],
+            production_data[feature]
+        )
+
+        if psi >= 0.25:
+            status = "HIGH DRIFT"
+            drift_found = True
+
+        elif psi >= 0.10:
+            status = "MODERATE DRIFT"
+
+        else:
+            status = "NO SIGNIFICANT DRIFT"
+
+        rows.append({
+            "Feature": feature,
+            "PSI": psi,
+            "Status": status
+        })
+
+    return pd.DataFrame(rows), drift_found
 
 
-print("\nDATA DRIFT REPORT")
-print("=" * 50)
+if __name__ == "__main__":
 
-drift_found = False
+    report, drift_found = get_data_drift_report()
 
-for feature in FEATURES:
+    print("\nDATA DRIFT REPORT")
+    print("=" * 50)
+    print(report.to_string(index=False))
+    print("=" * 50)
 
-    psi = calculate_psi(
-        training_data[feature],
-        production_data[feature]
-    )
-
-    print(f"{feature:15} PSI = {psi:.4f}")
-
-    if psi >= 0.25:
-        print("                 STATUS = HIGH DRIFT")
-        drift_found = True
-
-    elif psi >= 0.10:
-        print("                 STATUS = MODERATE DRIFT")
-
+    if drift_found:
+        print("ALERT: Significant data drift detected!")
     else:
-        print("                 STATUS = NO SIGNIFICANT DRIFT")
-
-
-print("=" * 50)
-
-if drift_found:
-    print("ALERT: Significant data drift detected!")
-else:
-    print("No significant data drift detected.")
+        print("No significant data drift detected.")

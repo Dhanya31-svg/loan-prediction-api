@@ -1,77 +1,62 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 import joblib
 import logging
-import time
+import sys
 
 
-# =========================================================
-# Logging
-# =========================================================
+# -----------------------------------------
+# Configure application logging
+# -----------------------------------------
 
-logger = logging.getLogger("uvicorn.error")
+logger = logging.getLogger("loan_api")
+logger.setLevel(logging.INFO)
 
+# Send logs directly to Docker stdout
+handler = logging.StreamHandler(sys.stdout)
 
-# =========================================================
-# FastAPI Application
-# =========================================================
-
-app = FastAPI(
-    title="Loan Prediction API",
-    description="ML API for predicting loan approval",
-    version="1.0.0"
+formatter = logging.Formatter(
+    "%(asctime)s - %(levelname)s - %(message)s"
 )
 
+handler.setFormatter(formatter)
 
-# =========================================================
-# Request Logging Middleware
-# =========================================================
+logger.addHandler(handler)
 
-@app.middleware("http")
-async def log_requests(request: Request, call_next):
-
-    start_time = time.time()
-
-    response = await call_next(request)
-
-    process_time = time.time() - start_time
-
-    logger.info(
-        f"REQUEST: {request.method} {request.url.path} | "
-        f"STATUS: {response.status_code} | "
-        f"TIME: {process_time:.4f}s"
-    )
-
-    return response
+# Prevent duplicate logging
+logger.propagate = False
 
 
-# =========================================================
-# Load ML Model
-# =========================================================
+# -----------------------------------------
+# Create FastAPI application
+# -----------------------------------------
 
-logger.info("Loading ML model...")
+app = FastAPI()
+
+
+# -----------------------------------------
+# Load trained ML model
+# -----------------------------------------
 
 model = joblib.load("model/loan_model.pkl")
 
-logger.info("ML model loaded successfully")
 
-
-# =========================================================
-# Home Endpoint
-# =========================================================
+# -----------------------------------------
+# Home endpoint
+# -----------------------------------------
 
 @app.get("/")
 def home():
 
-    logger.info("HOME endpoint accessed")
+    logger.info("Home endpoint accessed")
 
     return {
         "message": "Loan Prediction API is running"
     }
 
 
-# =========================================================
-# Prediction Endpoint
-# =========================================================
+# -----------------------------------------
+# Prediction endpoint
+# -----------------------------------------
 
 @app.post("/predict")
 def predict(
@@ -81,15 +66,8 @@ def predict(
     credit_score: int
 ):
 
-    logger.info(
-        f"PREDICTION REQUEST | "
-        f"age={age}, "
-        f"income={income}, "
-        f"loan_amount={loan_amount}, "
-        f"credit_score={credit_score}"
-    )
+    logger.info("Prediction request received")
 
-    # Prepare input
     data = [[
         age,
         income,
@@ -97,19 +75,15 @@ def predict(
         credit_score
     ]]
 
-    # Prediction
     prediction = model.predict(data)[0]
 
-    # Result
     if prediction == 1:
         result = "Loan Approved"
     else:
         result = "Loan Rejected"
 
     logger.info(
-        f"PREDICTION RESULT | "
-        f"prediction={int(prediction)} | "
-        f"result={result}"
+        f"Prediction completed: {result}"
     )
 
     return {
