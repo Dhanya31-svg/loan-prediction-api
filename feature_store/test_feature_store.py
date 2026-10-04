@@ -1,6 +1,6 @@
 from feast import FeatureStore
 
-store = FeatureStore(repo_path=".")
+store = FeatureStore(repo_path="feature_store")
 
 features = store.get_online_features(
     features=[
